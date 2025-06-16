@@ -1,29 +1,36 @@
-const io = require('socket.io-client');
-const { StreamCamera, Codec, Flip, SensorMode } = require('pi-camera-connect');
-const socket = io.connect('http://87.212.214.27/whatsvogel/iot');
+const net = require('net');
+const fs = require('fs');
+const { spawn } = require('child_process');
+const readline = require('readline');
 
-const streamCamera = new StreamCamera({
-	codec: Codec.MJPEG,
-	flip: Flip.Vertical,
-	sensorMode: SensorMode.Mode6
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
 });
 
-socket.on('connect', () => {
-	socket.sendBuffer = [];
+const libcameraProcess = spawn('libcamera-vid', ['--codec', 'h264', '-o', 'tcp://127.0.0.1:5000', '--inline', '--timeout', '0']);
 
-	socket.emit('pi-cam-init', 'cam-1');
+const server = net.createServer(socket => {
+  console.log('Client connected');
+  const file = fs.createWriteStream('stream2.h264');
 
-	console.log('Connected to the server!' + socket.id);
+  socket.on('data', (chunk) => {
+    console.log(`Received frame chunk of size: ${chunk.length} bytes`);
+  });
+
+  socket.pipe(file);
+
+  socket.on('end', () => {
+    console.log('Client disconnected');
+  });
+
+  timeoutId = setTimeout(() => {
+    console.log('10 seconds passed since first data chunk, killing libcameraProcess...');
+    libcameraProcess.kill();
+  }, 10000);
 });
 
-async function cameraStartCapture() {
-	await streamCamera.startCapture();
-}
-
-async function cameraStopCapture() {
-	await streamCamera.stopCapture();
-}
-
-cameraStartCapture().then(() => {
-	console.log('Camera is not capturing!');
+server.listen(5000, () => {
+  console.log('Server listening on port 5000');
 });
+
