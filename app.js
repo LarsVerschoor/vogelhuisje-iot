@@ -1,14 +1,19 @@
 const net = require('net');
 const fs = require('fs');
 const { spawn } = require('child_process');
-const readline = require('readline');
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
-const libcameraProcess = spawn('libcamera-vid', ['--codec', 'h264', '-o', 'tcp://127.0.0.1:5000', '--inline', '--timeout', '0']);
+const libcameraProcess = spawn('libcamera-vid', [
+  '--codec', 'h264',
+  '-o', 'tcp://127.0.0.1:5000',
+  '--inline',
+  '--timeout', '0',
+  '--shutter', '4000',
+  '--gain', '0',
+  '--awbgains', '1.1,1.0',
+  '--contrast', '1.3',
+  '--bitrate', '4000000',
+  '--framerate', '20'
+]);
 
 const server = net.createServer(socket => {
   console.log('Client connected');
@@ -26,7 +31,7 @@ const server = net.createServer(socket => {
 
   timeoutId = setTimeout(() => {
     console.log('10 seconds passed since first data chunk, killing libcameraProcess...');
-    libcameraProcess.kill();
+    libcameraProcess.kill('SIGINT');
   }, 10000);
 });
 
