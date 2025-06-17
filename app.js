@@ -1,8 +1,10 @@
-const net = require('net');
-const fs = require('fs');
-const { spawn } = require('child_process');
+import net from 'net';
+import Camera from "./camera.js";
 
-const libcameraProcess = spawn('libcamera-vid', [
+const SERVER_HOST = '145.24.223.199';
+const SERVER_PORT = 8001;
+
+const CAM_SETTINGS = [
   '--codec', 'h264',
   '-o', 'tcp://127.0.0.1:5000',
   '--inline',
@@ -13,29 +15,29 @@ const libcameraProcess = spawn('libcamera-vid', [
   '--contrast', '1.3',
   '--bitrate', '4000000',
   '--framerate', '20'
-]);
+]
 
-const server = net.createServer(socket => {
-  console.log('Client connected');
-  const file = fs.createWriteStream('stream2.h264');
+const cam = new Camera(CAM_SETTINGS);
 
-  socket.on('data', (chunk) => {
-    console.log(`Received frame chunk of size: ${chunk.length} bytes`);
-  });
-
-  socket.pipe(file);
-
-  socket.on('end', () => {
-    console.log('Client disconnected');
-  });
-
-  timeoutId = setTimeout(() => {
-    console.log('10 seconds passed since first data chunk, killing libcameraProcess...');
-    libcameraProcess.kill('SIGINT');
-  }, 10000);
+const upstream = net.createConnection({ host: SERVER_HOST, port: SERVER_PORT }, () => {
+  console.log('Connected to server')
 });
 
-server.listen(5000, () => {
-  console.log('Server listening on port 5000');
+cam.on('chunk', (chunk) => {
+  if (!upstream.writable || upstream.destroyed) return;
+  upstream.write(chunk);
+});
+
+upstream.on('data', (data) => {
+  const msg = data.toString().trim();
+  console.log('Message from server:', msg);
+
+  if (msg === 'start-cam') {
+    cam.start();
+  }
+
+  if (msg === 'stop-cam') {
+    cam.stop();
+  }
 });
 
