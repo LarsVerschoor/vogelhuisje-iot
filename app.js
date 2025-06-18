@@ -25,31 +25,31 @@ function connectToServer() {
   upstream = net.createConnection({ host: SERVER_HOST, port: SERVER_PORT }, () => {
     console.log('Connected to server')
   });
+
+  cam.on('chunk', (chunk) => {
+    if (!upstream.writable || upstream.destroyed) return;
+    upstream.write(chunk);
+  });
+
+  upstream.on('data', (data) => {
+    const msg = data.toString().trim();
+    console.log('Message from server:', msg);
+
+    if (msg === 'start-cam') {
+      cam.start();
+    }
+
+    if (msg === 'stop-cam') {
+      cam.stop();
+    }
+  });
+
+  upstream.on('close', () => {
+    console.log('Disconnected from server, connecting again in 10s.')
+    setTimeout(() => {
+      connectToServer();
+    }, 10_000);
+  });
 }
-
-cam.on('chunk', (chunk) => {
-  if (!upstream.writable || upstream.destroyed) return;
-  upstream.write(chunk);
-});
-
-upstream.on('data', (data) => {
-  const msg = data.toString().trim();
-  console.log('Message from server:', msg);
-
-  if (msg === 'start-cam') {
-    cam.start();
-  }
-
-  if (msg === 'stop-cam') {
-    cam.stop();
-  }
-});
-
-upstream.on('close', () => {
-  console.log('Disconnected from server, connecting again in 10s.')
-  setTimeout(() => {
-    connectToServer();
-  }, 10_000);
-});
 
 connectToServer()
