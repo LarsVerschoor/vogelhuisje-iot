@@ -44,6 +44,10 @@ function connectToServer() {
     }
   });
 
+  upstream.on('error', (err) => {
+    console.error('An error occured in the server connection:', err.message);
+  });
+
   upstream.on('close', () => {
     console.log('Disconnected from server, connecting again in 10s.')
     setTimeout(() => {
