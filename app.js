@@ -19,9 +19,13 @@ const CAM_SETTINGS = [
 
 const cam = new Camera(CAM_SETTINGS);
 
-const upstream = net.createConnection({ host: SERVER_HOST, port: SERVER_PORT }, () => {
-  console.log('Connected to server')
-});
+let upstream = null
+
+function connectToServer() {
+  upstream = net.createConnection({ host: SERVER_HOST, port: SERVER_PORT }, () => {
+    console.log('Connected to server')
+  });
+}
 
 cam.on('chunk', (chunk) => {
   if (!upstream.writable || upstream.destroyed) return;
@@ -41,3 +45,11 @@ upstream.on('data', (data) => {
   }
 });
 
+upstream.on('close', () => {
+  console.log('Disconnected from server, connecting again in 10s.')
+  setTimeout(() => {
+    connectToServer();
+  }, 10_000);
+});
+
+connectToServer()
