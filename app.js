@@ -49,6 +49,7 @@ function connectToServer() {
   });
 
   upstream.on('close', () => {
+    cam.stop();
     console.log('Disconnected from server, connecting again in 10s.')
     setTimeout(() => {
       connectToServer();
