@@ -23,12 +23,14 @@ class Camera extends EventEmitter{
     }
 
     start() {
+        console.log('started');
         if (this.libcameraProcess) return;
         this.libcameraProcess = spawn('libcamera-vid', this.settings);
     }
 
     stop() {
         if (!this.libcameraProcess) return;
+        console.log('stopped');
         this.libcameraProcess.kill();
         this.libcameraProcess = null;
     }
